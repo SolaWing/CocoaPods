@@ -758,7 +758,7 @@ module Pod
 
           if target.uses_swift?
             # for swift, we have a custom build phase that copies in the module map, appending the .Swift module
-            "${PODS_CONFIGURATION_BUILD_DIR}/#{target.label}/#{target.product_module_name}.modulemap"
+            "#{CONFIGURATION_BUILD_DIR_VARIABLE}/#{target.label}/#{target.product_module_name}.modulemap"
           else
             "${PODS_ROOT}/#{target.module_map_path.relative_path_from(target.sandbox.root)}"
           end
@@ -928,7 +928,7 @@ module Pod
         #-------------------------------------------------------------------------#
       end
 
-      # A subclass that generates build settings for a `PodTarget`
+      # A subclass that generates build settings for an `AggregateTarget`
       class AggregateTargetSettings < BuildSettings
         #-------------------------------------------------------------------------#
 

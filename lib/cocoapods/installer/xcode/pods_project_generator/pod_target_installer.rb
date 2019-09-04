@@ -40,7 +40,7 @@ module Pod
                 # PBXAggregateTarget that will be used to wire up dependencies later.
                 native_target = add_placeholder_target
                 resource_bundle_targets = add_resources_bundle_targets(library_file_accessors).values.flatten
-                create_xcconfig_file(native_target, resource_bundle_targets)
+                create_xcconfig_file(native_target, resource_bundle_targets, Xcodeproj::Config.new(config_hash))
                 return TargetInstallationResult.new(target, native_target, resource_bundle_targets)
               end
 
@@ -57,12 +57,8 @@ module Pod
               add_files_to_build_phases(native_target, test_native_targets, app_native_targets)
               validate_targets_contain_sources(test_native_targets + app_native_targets + [native_target])
 
-              create_xcconfig_file(native_target, resource_bundle_targets)
-              create_test_xcconfig_files(test_native_targets, test_resource_bundle_targets)
-              create_app_xcconfig_files(app_native_targets, app_resource_bundle_targets)
-
               if target.defines_module?
-                create_module_map(native_target) do |generator|
+                create_module_map do |generator|
                   generator.headers.concat module_map_additional_headers
                 end
                 create_umbrella_header(native_target) do |generator|
@@ -122,6 +118,10 @@ module Pod
                   add_file_to_support_group(path)
                 end
               end
+              remove_pod_target_xcconfig_overrides_from_target(config_hash, native_target)
+              create_xcconfig_file(native_target, resource_bundle_targets, Xcodeproj::Config.new(config_hash))
+              create_test_xcconfig_files(test_native_targets, test_resource_bundle_targets)
+              create_app_xcconfig_files(app_native_targets, app_resource_bundle_targets)
               create_dummy_source(native_target)
               clean_support_files_temp_dir
               TargetInstallationResult.new(target, native_target, resource_bundle_targets,
@@ -141,7 +141,7 @@ module Pod
           #
           def add_target
             super.tap do |native_target|
-              remove_pod_target_xcconfig_overrides_from_target(target.build_settings, native_target)
+              remove_pod_target_xcconfig_overrides_from_target(target.build_settings.generate.to_hash, native_target)
             end
           end
 
@@ -150,13 +150,13 @@ module Pod
           #
           # @return [Void]
           #
-          # @param [Target::BuildSettings] build_settings
+          # @param [Hash] xcconfig_overrides
           #
           # @param [PBXNativeTarget] native_target
           #
-          def remove_pod_target_xcconfig_overrides_from_target(build_settings, native_target)
+          def remove_pod_target_xcconfig_overrides_from_target(xcconfig_overrides, native_target)
             native_target.build_configurations.each do |configuration|
-              build_settings.merged_pod_target_xcconfigs.each_key do |setting|
+              xcconfig_overrides.each_key do |setting|
                 configuration.build_settings.delete(setting)
               end
             end
@@ -178,8 +178,9 @@ module Pod
           # @return [Boolean] Whether the target should build an Info.plist file
           #
           def skip_info_plist?(native_target)
-            existing_setting = native_target.resolved_build_setting('INFOPLIST_FILE', true).values.compact
-            !existing_setting.empty?
+            existing_setting = native_target.resolved_build_setting('INFOPLIST_FILE', true).values
+            existing_setting.push(config_hash['INFOPLIST_FILE'])
+            !existing_setting.compact.empty?
           end
 
           # Remove the default headers folder path settings for static library pod
@@ -206,8 +207,11 @@ module Pod
             if target.swift_version
               settings['SWIFT_VERSION'] = target.swift_version
             end
-
             settings
+          end
+
+          def has_module_map?
+            target.defines_module?
           end
 
           # Filters the given resource file references discarding empty paths which are
@@ -365,7 +369,8 @@ module Pod
                 configuration.build_settings['CODE_SIGN_IDENTITY'] = '' if target.platform == :osx
               end
 
-              remove_pod_target_xcconfig_overrides_from_target(target.build_settings_for_spec(test_spec), test_native_target)
+              build_settings = target.build_settings_for_spec(test_spec).generate.to_hash
+              remove_pod_target_xcconfig_overrides_from_target(build_settings, test_native_target)
 
               # Test native targets also need frameworks and resources to be copied over to their xctest bundle.
               create_test_target_embed_frameworks_script(test_spec)
@@ -454,7 +459,8 @@ module Pod
                 end
               end
 
-              remove_pod_target_xcconfig_overrides_from_target(target.build_settings_for_spec(app_spec), app_native_target)
+              build_settings = target.build_settings_for_spec(app_spec).generate.to_hash
+              remove_pod_target_xcconfig_overrides_from_target(build_settings, app_native_target)
 
               create_app_target_embed_frameworks_script(app_spec)
               create_app_target_copy_resources_script(app_spec)
@@ -548,7 +554,8 @@ module Pod
                   end
                 end
 
-                remove_pod_target_xcconfig_overrides_from_target(target.build_settings_for_spec(file_accessor.spec), resource_bundle_target)
+                build_settings = target.build_settings_for_spec(file_accessor.spec).generate.to_hash
+                remove_pod_target_xcconfig_overrides_from_target(build_settings, resource_bundle_target)
 
                 resource_bundle_target
               end
@@ -563,11 +570,13 @@ module Pod
           # @param  [Array<PBXNativeTarget>] resource_bundle_targets
           #         the additional resource bundle targets to link the xcconfig file into.
           #
-          # @return [void]
+          # @param  [Xcodeproj::Config] xcconfig
+          #         the contents of the xcconfig to save to the file
           #
-          def create_xcconfig_file(native_target, resource_bundle_targets)
+          #
+          def create_xcconfig_file(native_target, resource_bundle_targets, xcconfig)
             path = target.xcconfig_path
-            update_changed_file(target.build_settings, path)
+            update_changed_file(Generator::Constant.new(xcconfig.to_s), path)
             xcconfig_file_ref = add_file_to_support_group(path)
 
             # also apply the private config to resource bundle targets.
@@ -849,8 +858,8 @@ module Pod
             end
           end
 
-          def create_module_map(native_target)
-            return super(native_target) unless custom_module_map
+          def create_module_map
+            return super unless custom_module_map
 
             path = target.module_map_path_to_write
             UI.message "- Copying module map file to #{UI.path(path)}" do
@@ -869,10 +878,7 @@ module Pod
                 FileUtils.ln_sf(source, linked_path)
               end
 
-              relative_path = target.module_map_path.relative_path_from(sandbox.root).to_s
-              native_target.build_configurations.each do |c|
-                c.build_settings['MODULEMAP_FILE'] = relative_path.to_s
-              end
+              config_hash['MODULEMAP_FILE'] = target.module_map_path.relative_path_from(sandbox.root).to_s
             end
           end
 
@@ -986,6 +992,8 @@ module Pod
                 configuration.build_settings['ARCHS'] = target.archs
               end
             end
+
+            @config_hash.merge! target.build_settings.generate.to_hash
             native_target
           end
 

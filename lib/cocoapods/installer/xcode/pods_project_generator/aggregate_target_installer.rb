@@ -6,6 +6,11 @@ module Pod
         # project and the relative support files.
         #
         class AggregateTargetInstaller < TargetInstaller
+
+          # @return [AggregateTarget] the aggregate target to be installed
+          #
+          attr_reader :target
+
           # Creates the target in the Pods project and the relative support files.
           #
           # @return [TargetInstallationResult] the result of the installation of this target.
@@ -15,13 +20,12 @@ module Pod
               native_target = add_target
               create_support_files_dir
               create_support_files_group
-              create_xcconfig_file(native_target)
               if target.host_requires_frameworks?
                 create_info_plist_file(target.info_plist_path, native_target, target.version, target.platform)
-                create_module_map(native_target)
+                create_module_map
                 create_umbrella_header(native_target)
               elsif target.uses_swift?
-                create_module_map(native_target)
+                create_module_map
                 create_umbrella_header(native_target)
               end
               # Because embedded targets live in their host target, CocoaPods
@@ -35,6 +39,7 @@ module Pod
               create_copy_resources_script if target.includes_resources?
               create_acknowledgements
               create_dummy_source(native_target)
+              create_xcconfig_file(native_target, Xcodeproj::Config.new(config_hash))
               clean_support_files_temp_dir
               TargetInstallationResult.new(target, native_target)
             end
@@ -63,7 +68,6 @@ module Pod
               'OTHER_LDFLAGS'                      => '',
               'OTHER_LIBTOOLFLAGS'                 => '',
               'PODS_ROOT'                          => '$(SRCROOT)',
-              'PRODUCT_BUNDLE_IDENTIFIER'          => 'org.cocoapods.${PRODUCT_NAME:rfc1034identifier}',
               'SKIP_INSTALL'                       => 'YES',
 
               # Needed to ensure that static libraries won't try to embed the swift stdlib,
@@ -73,6 +77,10 @@ module Pod
               'ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES' => 'NO',
             }
             super.merge(settings)
+          end
+
+          def has_module_map?
+            target.uses_swift? || target.host_requires_frameworks?
           end
 
           # Creates the group that holds the references to the support files
@@ -92,15 +100,17 @@ module Pod
           # @param  [PBXNativeTarget] native_target
           #         the native target to link the module map file into.
           #
+          # @param  [Xcodeproj::Config] xcconfig
+          #         the config contents to save
+          #
           # @return [void]
           #
-          def create_xcconfig_file(native_target)
+          def create_xcconfig_file(native_target, xcconfig)
             native_target.build_configurations.each do |configuration|
               next unless target.user_build_configurations.key?(configuration.name)
               path = target.xcconfig_path(configuration.name)
-              build_settings = target.build_settings(configuration.name)
-              update_changed_file(build_settings, path)
-              target.xcconfigs[configuration.name] = build_settings.xcconfig
+              update_changed_file(Generator::Constant.new(xcconfig.to_s), path)
+              target.xcconfigs[configuration.name] = xcconfig
               xcconfig_file_ref = add_file_to_support_group(path)
               configuration.base_configuration_reference = xcconfig_file_ref
             end

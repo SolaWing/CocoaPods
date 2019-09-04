@@ -775,14 +775,6 @@ module Pod
                   end
                 end
 
-                it 'sets the correct build dir' do
-                  @installer.install!
-                  @bundle_target = @project.targets.find { |t| t.name == 'BananaLib-Pods-SampleProject-banana_bundle' }
-                  @bundle_target.build_configurations.each do |bc|
-                    bc.build_settings['CONFIGURATION_BUILD_DIR'].should == '$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/BananaLib-Pods-SampleProject'
-                  end
-                end
-
                 it 'sets the correct targeted device family for the resource bundle targets' do
                   @installer.install!
                   @bundle_target = @project.targets.find { |t| t.name == 'BananaLib-Pods-SampleProject-banana_bundle' }
@@ -1038,8 +1030,7 @@ module Pod
                 Pathname.any_instance.stubs(:mkpath)
 
                 FileUtils.expects(:ln_sf).with(relative_path, target_module_path)
-                native_target = mock(:build_configurations => [])
-                @installer.send(:create_module_map, native_target)
+                @installer.send(:create_module_map)
               end
             end
 
