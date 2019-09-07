@@ -121,7 +121,7 @@ module Pod
           pod_target.test_spec_build_settings_by_config.each do |name, settings_by_config|
             build_settings[name] = settings_by_config.transform_values { |settings| Digest::MD5.hexdigest(settings.xcconfig.to_s) }
           end
-          pod_target.app_spec_build_settings_by_config.each do |key, settings_by_config|
+          pod_target.app_spec_build_settings_by_config.each do |name, settings_by_config|
             build_settings[name] = settings_by_config.transform_values { |settings| Digest::MD5.hexdigest(settings.xcconfig.to_s) }
           end
 

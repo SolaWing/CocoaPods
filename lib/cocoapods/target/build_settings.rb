@@ -119,7 +119,7 @@ module Pod
 
           retval = retval.dup if dup_before_freeze && retval.frozen?
 
-          retval.concat(pod_targets_to_link.flat_map { |pod_target| pod_target.build_settings_for_spec(pod_target.root_spec, configuration: configuration_name).public_send("#{method_name}_to_import") }) if from_pod_targets_to_link
+          retval.concat(pod_targets_to_link.flat_map { |pod_target| pod_target.build_settings_for_spec(pod_target.root_spec, :configuration => configuration_name).public_send("#{method_name}_to_import") }) if from_pod_targets_to_link
           retval.concat(search_paths_aggregate_target_pod_target_build_settings.flat_map(&from_search_paths_aggregate_targets)) if from_search_paths_aggregate_targets
 
           retval.compact! if compacted
@@ -522,7 +522,7 @@ module Pod
             @xcconfig_spec_type = :library
             @library_xcconfig = true
           end
-          @configuration = configuration or raise "no conf for #{self}"
+          (@configuration = configuration) || raise("no conf for #{self}")
         end
 
         # @return [Xcodeproj::Xconfig]
@@ -762,12 +762,12 @@ module Pod
 
         # @return [Array<String>]
         define_build_settings_method :header_search_paths, :build_setting => true, :memoized => true, :sorted => true do
-          target.header_search_paths(:include_dependent_targets_for_test_spec => test_xcconfig? && non_library_spec, :include_dependent_targets_for_app_spec => app_xcconfig? && non_library_spec, configuration: @configuration)
+          target.header_search_paths(:include_dependent_targets_for_test_spec => test_xcconfig? && non_library_spec, :include_dependent_targets_for_app_spec => app_xcconfig? && non_library_spec, :configuration => @configuration)
         end
 
         # @return [Array<String>]
         define_build_settings_method :public_header_search_paths, :memoized => true, :sorted => true do
-          target.header_search_paths(:include_dependent_targets_for_test_spec => test_xcconfig? && non_library_spec, :include_dependent_targets_for_app_spec => app_xcconfig? && non_library_spec, :include_private_headers => false, configuration: @configuration)
+          target.header_search_paths(:include_dependent_targets_for_test_spec => test_xcconfig? && non_library_spec, :include_dependent_targets_for_app_spec => app_xcconfig? && non_library_spec, :include_private_headers => false, :configuration => @configuration)
         end
 
         #-------------------------------------------------------------------------#
@@ -860,11 +860,11 @@ module Pod
         define_build_settings_method :dependent_targets, :memoized => true do
           select_maximal_pod_targets(
             if test_xcconfig?
-              target.dependent_targets_for_test_spec(non_library_spec, configuration: @configuration)
+              target.dependent_targets_for_test_spec(non_library_spec, :configuration => @configuration)
             elsif app_xcconfig?
-              target.dependent_targets_for_app_spec(non_library_spec, configuration: @configuration)
+              target.dependent_targets_for_app_spec(non_library_spec, :configuration => @configuration)
             else
-              target.recursive_dependent_targets(configuration: @configuration)
+              target.recursive_dependent_targets(:configuration => @configuration)
             end,
           )
         end
@@ -874,7 +874,7 @@ module Pod
           if test_xcconfig? && app_host_info = target.test_app_hosts_by_spec_name[non_library_spec.name]
             # we're embedding into an app defined by an app spec
             app_spec, app_target = *app_host_info
-            host_targets = app_target.dependent_targets_for_app_spec(app_spec, configuration: @configuration)
+            host_targets = app_target.dependent_targets_for_app_spec(app_spec, :configuration => @configuration)
             dependent_targets - host_targets
           else
             dependent_targets
@@ -951,7 +951,7 @@ module Pod
         def initialize(target, configuration_name, configuration: nil)
           super(target)
           @configuration_name = configuration_name
-          @configuration = configuration or raise "no conf for #{self}"
+          (@configuration = configuration) || raise("no conf for #{self}")
         end
 
         # @return [Xcodeproj::Config] xcconfig

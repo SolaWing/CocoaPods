@@ -922,7 +922,7 @@ module Pod
 
             it 'creates the xcconfig file' do
               @installer.install!
-              %w[debug release].each do |variant|
+              %w(debug release).each do |variant|
                 file = config.sandbox.root + @pod_target.xcconfig_path(variant)
                 xcconfig = Xcodeproj::Config.new(file)
                 xcconfig.to_hash['PODS_ROOT'].should == '${SRCROOT}'
@@ -1021,7 +1021,7 @@ module Pod
               @pod_target.stubs(:should_build?).returns(false)
               @installer.install!
               group = @project['Pods/BananaLib/Support Files']
-              group.children.map(&:display_name).sort.should == %w[BananaLib.debug.xcconfig BananaLib.release.xcconfig]
+              group.children.map(&:display_name).sort.should == %w(BananaLib.debug.xcconfig BananaLib.release.xcconfig)
             end
 
             it 'does not set architectures for targets that should not build' do
@@ -1385,8 +1385,8 @@ module Pod
                 @banana_spec.resource_bundle = nil
                 @project.add_pod_group('BananaLib', fixture('banana-lib'))
 
-                @pod_target = fixture_pod_target(@banana_spec, false, {'Debug' => :debug, 'Release' => :release},
-                                                                      :build_type => Target::BuildType.dynamic_framework)
+                @pod_target = fixture_pod_target(@banana_spec, false, { 'Debug' => :debug, 'Release' => :release },
+                                                 :build_type => Target::BuildType.dynamic_framework)
                 target_installer = PodTargetInstaller.new(config.sandbox, @project, @pod_target)
 
                 # Use a file references installer to add the files so that the correct ones are added.

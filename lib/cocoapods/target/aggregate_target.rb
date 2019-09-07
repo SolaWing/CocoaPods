@@ -431,7 +431,7 @@ module Pod
       settings = {}
 
       user_build_configurations.each do |configuration_name, configuration|
-        settings[configuration_name] = BuildSettings::AggregateTargetSettings.new(self, configuration_name, configuration: configuration)
+        settings[configuration_name] = BuildSettings::AggregateTargetSettings.new(self, configuration_name, :configuration => configuration)
       end
 
       settings

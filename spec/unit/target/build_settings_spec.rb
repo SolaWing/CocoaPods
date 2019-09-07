@@ -4,11 +4,11 @@ module Pod
   class Target
     describe BuildSettings do
       def pod(pod_target)
-        BuildSettings::PodTargetSettings.new(pod_target, nil, configuration: :debug)
+        BuildSettings::PodTargetSettings.new(pod_target, nil, :configuration => :debug)
       end
 
       def aggregate(aggregate_target, configuration_name = 'Release')
-        BuildSettings::AggregateTargetSettings.new(aggregate_target, configuration_name, configuration: configuration_name.downcase.to_sym)
+        BuildSettings::AggregateTargetSettings.new(aggregate_target, configuration_name, :configuration => configuration_name.downcase.to_sym)
       end
 
       describe 'memoization' do

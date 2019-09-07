@@ -22,7 +22,7 @@ module Pod
           unless @specs.empty?
             @target.target_definition.whitelist_pod_for_configuration(@specs.first.name, 'Release')
           end
-          @generator = AggregateTargetSettings.new(@target, 'Release', configuration: :release)
+          @generator = AggregateTargetSettings.new(@target, 'Release', :configuration => :release)
         end
 
         shared 'Aggregate' do
@@ -198,7 +198,7 @@ module Pod
           end
 
           it 'does not links the pod targets with the aggregate target for non-whitelisted configuration' do
-            @generator = AggregateTargetSettings.new(@target, 'Debug', configuration: :debug)
+            @generator = AggregateTargetSettings.new(@target, 'Debug', :configuration => :debug)
             @xcconfig = @generator.dup.generate
             @xcconfig.to_hash['OTHER_LDFLAGS'].should.be.nil
           end
@@ -244,9 +244,9 @@ module Pod
                               :target_definitions => [target_definition],
                               :root_spec => spec,
                              )
-            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, nil, configuration: :release))
+            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, nil, :configuration => :release))
             aggregate_target = fixture_aggregate_target([pod_target])
-            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', configuration: :release)
+            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', :configuration => :release)
             @generator.other_ldflags.should == %w(-ObjC -l"PodTarget" -l"StaticLibrary" -l"VendoredDyld" -l"xml2" -framework "StaticFramework" -framework "VendoredFramework" -framework "XCTest")
           end
         end
@@ -492,9 +492,9 @@ module Pod
                               :target_definitions => [target_definition],
                               :root_spec => spec,
                              )
-            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, nil, configuration: :release))
+            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, nil, :configuration => :release))
             aggregate_target = fixture_aggregate_target([pod_target])
-            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', configuration: :release)
+            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', :configuration => :release)
             @generator.other_ldflags.should == %w(-ObjC -l"VendoredDyld" -l"xml2" -framework "PodTarget" -framework "VendoredFramework" -framework "XCTest")
           end
 
@@ -540,9 +540,9 @@ module Pod
                               :target_definitions => [target_definition],
                               :root_spec => spec,
                              )
-            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, nil, configuration: :release))
+            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, nil, :configuration => :release))
             aggregate_target = fixture_aggregate_target([pod_target])
-            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', configuration: :release)
+            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', :configuration => :release)
             @generator.other_ldflags.should == %w(-ObjC -l"PodTarget" -l"StaticLibrary" -l"VendoredDyld" -l"xml2" -framework "StaticFramework" -framework "VendoredFramework" -framework "XCTest" -weak_framework "iAd")
           end
 
@@ -588,9 +588,9 @@ module Pod
                               :target_definitions => [target_definition],
                               :root_spec => spec,
                              )
-            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, configuration: :release))
+            pod_target.stubs(:build_settings_for_spec => PodTargetSettings.new(pod_target, :configuration => :release))
             aggregate_target = fixture_aggregate_target([pod_target])
-            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', configuration: :release)
+            @generator = AggregateTargetSettings.new(aggregate_target, 'Release', :configuration => :release)
             @generator.other_ldflags.should == %w(-ObjC -l"StaticLibrary" -l"VendoredDyld" -l"xml2" -framework "PodTarget" -framework "StaticFramework" -framework "VendoredFramework" -framework "XCTest")
           end
         end
@@ -710,7 +710,7 @@ module Pod
         describe 'an empty pod target' do
           before do
             @blank_target = fixture_aggregate_target
-            @generator = AggregateTargetSettings.new(@blank_target, 'Release', configuration: :release)
+            @generator = AggregateTargetSettings.new(@blank_target, 'Release', :configuration => :release)
           end
 
           it 'it should not have any framework search paths' do

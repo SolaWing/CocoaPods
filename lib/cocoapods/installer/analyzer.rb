@@ -702,8 +702,8 @@ module Pod
       #
       def dependencies_for_specs(specs, platform, all_specs)
         dependent_specs = {
-          debug: Set.new,
-          release: Set.new,
+          :debug => Set.new,
+          :release => Set.new,
         }
 
         if !specs.empty? && !all_specs.empty?
@@ -762,7 +762,7 @@ module Pod
                   end
         else
           user_build_configurations = Target::DEFAULT_BUILD_CONFIGURATIONS.merge(
-            target_definitions.map { |td| td.build_configurations || {} }.reduce({}, &:merge)
+            target_definitions.map { |td| td.build_configurations || {} }.reduce({}, &:merge),
           )
           archs = target_requires_64_bit ? ['$(ARCHS_STANDARD_64_BIT)'] : []
         end

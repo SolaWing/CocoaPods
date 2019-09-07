@@ -62,9 +62,9 @@ module Pod
             output_paths_by_config = {}
             if use_input_output_paths
               dependent_targets = if spec.test_specification?
-                                    target.dependent_targets_for_test_spec(spec, configuration: nil)
+                                    target.dependent_targets_for_test_spec(spec, :configuration => nil)
                                   else
-                                    target.dependent_targets_for_app_spec(spec, configuration: nil)
+                                    target.dependent_targets_for_app_spec(spec, :configuration => nil)
                                   end
               resource_paths = dependent_targets.flat_map do |dependent_target|
                 spec_paths_to_include = dependent_target.library_specs.map(&:name)
@@ -99,9 +99,9 @@ module Pod
             output_paths_by_config = {}
             if use_input_output_paths?
               dependent_targets = if spec.test_specification?
-                                    target.dependent_targets_for_test_spec(spec, configuration: nil)
+                                    target.dependent_targets_for_test_spec(spec, :configuration => nil)
                                   else
-                                    target.dependent_targets_for_app_spec(spec, configuration: nil)
+                                    target.dependent_targets_for_app_spec(spec, :configuration => nil)
                                   end
               framework_paths = dependent_targets.flat_map do |dependent_target|
                 spec_paths_to_include = dependent_target.library_specs.map(&:name)

@@ -100,13 +100,13 @@ module Pod
         @pod_target = fixture_pod_target_with_specs([grapefruits, *grapefruits.recursive_subspecs], false, {}, [], Platform.ios, [@target_definition])
 
         @pod_target.dependent_targets.should == []
-        @pod_target.dependent_targets_by_config.should == { debug: [], release: [] }
+        @pod_target.dependent_targets_by_config.should == { :debug => [], :release => [] }
 
         @pod_target.test_dependent_targets_by_spec_name.should == { 'GrapefruitsLib/Tests' => [] }
-        @pod_target.test_dependent_targets_by_spec_name_by_config.should == { 'GrapefruitsLib/Tests' => { debug: [], release: [] } }
+        @pod_target.test_dependent_targets_by_spec_name_by_config.should == { 'GrapefruitsLib/Tests' => { :debug => [], :release => [] } }
 
         @pod_target.app_dependent_targets_by_spec_name.should == { 'GrapefruitsLib/App' => [] }
-        @pod_target.app_dependent_targets_by_spec_name_by_config.should == { 'GrapefruitsLib/App' => { debug: [], release: [] } }
+        @pod_target.app_dependent_targets_by_spec_name_by_config.should == { 'GrapefruitsLib/App' => { :debug => [], :release => [] } }
       end
 
       describe '#headers_sandbox' do
@@ -139,20 +139,20 @@ module Pod
         end
 
         it 'returns the build settings for a library spec' do
-          @pod_target.build_settings_for_spec(@watermelon_spec, configuration: :debug).should.equal @pod_target.build_settings_by_config[:debug]
-          @pod_target.build_settings_for_spec(@watermelon_spec, configuration: :release).should.equal @pod_target.build_settings_by_config[:release]
+          @pod_target.build_settings_for_spec(@watermelon_spec, :configuration => :debug).should.equal @pod_target.build_settings_by_config[:debug]
+          @pod_target.build_settings_for_spec(@watermelon_spec, :configuration => :release).should.equal @pod_target.build_settings_by_config[:release]
         end
 
         it 'returns the build settings for a test spec' do
           test_spec = @watermelon_spec.recursive_subspecs.find { |s| s.name == 'GrapefruitsLib/Tests' }
-          @pod_target.build_settings_for_spec(test_spec, configuration: :debug).non_library_spec.should == test_spec
-          @pod_target.build_settings_for_spec(test_spec, configuration: :release).non_library_spec.should == test_spec
+          @pod_target.build_settings_for_spec(test_spec, :configuration => :debug).non_library_spec.should == test_spec
+          @pod_target.build_settings_for_spec(test_spec, :configuration => :release).non_library_spec.should == test_spec
         end
 
         it 'returns the build settings for an app spec' do
           app_spec = @watermelon_spec.recursive_subspecs.find { |s| s.name == 'GrapefruitsLib/App' }
-          @pod_target.build_settings_for_spec(app_spec, configuration: :debug).non_library_spec.should == app_spec
-          @pod_target.build_settings_for_spec(app_spec, configuration: :release).non_library_spec.should == app_spec
+          @pod_target.build_settings_for_spec(app_spec, :configuration => :debug).non_library_spec.should == app_spec
+          @pod_target.build_settings_for_spec(app_spec, :configuration => :release).non_library_spec.should == app_spec
         end
       end
     end
