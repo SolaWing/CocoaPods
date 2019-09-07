@@ -4,11 +4,11 @@ module Pod
   class Target
     describe BuildSettings do
       def pod(pod_target)
-        BuildSettings::PodTargetSettings.new(pod_target)
+        BuildSettings::PodTargetSettings.new(pod_target, nil, configuration: :debug)
       end
 
       def aggregate(aggregate_target, configuration_name = 'Release')
-        BuildSettings::AggregateTargetSettings.new(aggregate_target, configuration_name)
+        BuildSettings::AggregateTargetSettings.new(aggregate_target, configuration_name, configuration: configuration_name.downcase.to_sym)
       end
 
       describe 'memoization' do
@@ -147,8 +147,9 @@ module Pod
                             :build_as_static? => false,
                             :product_basename => 'PodTarget',
                             :target_definitions => [target_definition],
+                            :root_spec => spec,
                            )
-          pod_target.stubs(:build_settings => pod(pod_target))
+          pod_target.stubs(:build_settings_for_spec => pod(pod_target))
           aggregate_target = fixture_aggregate_target([pod_target])
           aggregate(aggregate_target).other_ldflags.should.not.include '-framework'
         end
@@ -183,8 +184,9 @@ module Pod
                             :build_as_static? => false,
                             :product_basename => 'PodTarget',
                             :target_definitions => [target_definition],
+                            :root_spec => spec,
                            )
-          pod_target.stubs(:build_settings => pod(pod_target))
+          pod_target.stubs(:build_settings_for_spec => pod(pod_target))
           aggregate_target = fixture_aggregate_target([pod_target])
           aggregate(aggregate_target).other_ldflags.should.not.include '-framework'
         end
@@ -217,8 +219,9 @@ module Pod
                             :build_as_static? => false,
                             :product_basename => 'PodTarget',
                             :target_definitions => [target_definition],
+                            :root_spec => spec,
                            )
-          pod_target.stubs(:build_settings => pod(pod_target))
+          pod_target.stubs(:build_settings_for_spec => pod(pod_target))
           aggregate_target = fixture_aggregate_target([pod_target], true)
           aggregate(aggregate_target).other_ldflags.should.not.include '-ObjC'
         end
@@ -253,8 +256,9 @@ module Pod
                             :build_as_static? => true,
                             :product_basename => 'PodTarget',
                             :target_definitions => [target_definition],
+                            :root_spec => spec,
                            )
-          pod_target.stubs(:build_settings => pod(pod_target))
+          pod_target.stubs(:build_settings_for_spec => pod(pod_target))
           aggregate_target = fixture_aggregate_target([pod_target], true)
           aggregate(aggregate_target).other_ldflags.should.include '-ObjC'
         end

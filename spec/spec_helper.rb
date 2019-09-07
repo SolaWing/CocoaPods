@@ -116,14 +116,14 @@ def fixture_target_definition(name = 'Pods', platform = Pod::Platform.ios, conte
   Pod::Podfile::TargetDefinition.new(name, parent, contents)
 end
 
-def fixture_pod_target(spec_or_name, host_requires_frameworks = false, user_build_configurations = {}, archs = [],
+def fixture_pod_target(spec_or_name, host_requires_frameworks = false, user_build_configurations = Pod::Target::DEFAULT_BUILD_CONFIGURATIONS, archs = [],
                        platform = Pod::Platform.new(:ios, '6.0'), target_definitions = [], scope_suffix = nil, build_type: nil)
   spec = spec_or_name.is_a?(Pod::Specification) ? spec_or_name : fixture_spec(spec_or_name)
   fixture_pod_target_with_specs([spec], host_requires_frameworks, user_build_configurations, archs, platform,
                                 target_definitions, scope_suffix, :build_type => build_type)
 end
 
-def fixture_pod_target_with_specs(specs, host_requires_frameworks = false, user_build_configurations = {}, archs = [],
+def fixture_pod_target_with_specs(specs, host_requires_frameworks = false, user_build_configurations = Pod::Target::DEFAULT_BUILD_CONFIGURATIONS, archs = [],
                                   platform = Pod::Platform.new(:ios, '6.0'), target_definitions = [],
                                   scope_suffix = nil, build_type: nil)
   build_type ||= Pod::Target::BuildType.infer_from_spec(specs.first, :host_requires_frameworks => host_requires_frameworks)

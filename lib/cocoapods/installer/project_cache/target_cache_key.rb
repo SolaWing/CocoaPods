@@ -116,12 +116,13 @@ module Pod
         #
         def self.from_pod_target(sandbox, pod_target, is_local_pod: false, checkout_options: nil)
           build_settings = {}
-          build_settings[pod_target.label.to_s] = Digest::MD5.hexdigest(pod_target.build_settings.xcconfig.to_s)
-          pod_target.test_spec_build_settings.each do |name, settings|
-            build_settings[name] = Digest::MD5.hexdigest(settings.xcconfig.to_s)
+          build_settings[pod_target.label.to_s] =
+            pod_target.build_settings_by_config.transform_values { |settings| Digest::MD5.hexdigest(settings.xcconfig.to_s) }
+          pod_target.test_spec_build_settings_by_config.each do |name, settings_by_config|
+            build_settings[name] = settings_by_config.transform_values { |settings| Digest::MD5.hexdigest(settings.xcconfig.to_s) }
           end
-          pod_target.app_spec_build_settings.each do |name, settings|
-            build_settings[name] = Digest::MD5.hexdigest(settings.xcconfig.to_s)
+          pod_target.app_spec_build_settings_by_config.each do |key, settings_by_config|
+            build_settings[name] = settings_by_config.transform_values { |settings| Digest::MD5.hexdigest(settings.xcconfig.to_s) }
           end
 
           contents = {

@@ -648,18 +648,19 @@ module Pod
         end
 
         pod_targets.each do |target|
-          dependencies = dependencies_for_specs(target.library_specs.to_set, target.platform, all_specs).group_by(&:root)
-          target.dependent_targets = filter_dependencies(dependencies, pod_targets_by_name, target)
-          target.test_dependent_targets_by_spec_name = target.test_specs.each_with_object({}) do |test_spec, hash|
-            test_dependencies = dependencies_for_specs([test_spec], target.platform, all_specs).group_by(&:root)
-            test_dependencies.delete_if { |k, _| dependencies.key? k }
-            hash[test_spec.name] = filter_dependencies(test_dependencies, pod_targets_by_name, target)
+          dependencies_by_config = dependencies_for_specs(target.library_specs.to_set, target.platform, all_specs)
+          target.dependent_targets_by_config = dependencies_by_config.transform_values { |deps| filter_dependencies(deps, pod_targets_by_name, target) }
+
+          target.test_dependent_targets_by_spec_name_by_config = target.test_specs.each_with_object({}) do |test_spec, hash|
+            test_dependencies_by_config = dependencies_for_specs([test_spec], target.platform, all_specs)
+            test_dependencies_by_config.each { |config, deps| deps.delete_if { |k, _| dependencies_by_config[config].key? k } }
+            hash[test_spec.name] = test_dependencies_by_config.transform_values { |deps| filter_dependencies(deps, pod_targets_by_name, target) }
           end
 
-          target.app_dependent_targets_by_spec_name = target.app_specs.each_with_object({}) do |app_spec, hash|
-            app_dependencies = dependencies_for_specs([app_spec], target.platform, all_specs).group_by(&:root)
-            app_dependencies.delete_if { |k, _| dependencies.key? k }
-            hash[app_spec.name] = filter_dependencies(app_dependencies, pod_targets_by_name, target)
+          target.app_dependent_targets_by_spec_name_by_config = target.app_specs.each_with_object({}) do |app_spec, hash|
+            app_dependencies_by_config = dependencies_for_specs([app_spec], target.platform, all_specs)
+            app_dependencies_by_config.each { |config, deps| deps.delete_if { |k, _| dependencies_by_config[config].key? k } }
+            hash[app_spec.name] = app_dependencies_by_config.transform_values { |deps| filter_dependencies(deps, pod_targets_by_name, target) }
           end
 
           target.test_app_hosts_by_spec_name = target.test_specs.each_with_object({}) do |test_spec, hash|
@@ -696,29 +697,40 @@ module Pod
       # @param  [Hash<String, Specification>] all_specs
       #         All specifications which are installed alongside.
       #
+      # TODO:
       # @return [Array<Specification>]
       #
       def dependencies_for_specs(specs, platform, all_specs)
-        return [] if specs.empty? || all_specs.empty?
+        dependent_specs = {
+          debug: Set.new,
+          release: Set.new,
+        }
 
-        dependent_specs = Set.new
-
-        specs.each do |s|
-          s.dependencies(platform).each do |dep|
-            all_specs[dep.name].each do |spec|
-              if spec.non_library_specification?
-                if s.test_specification? && spec.name == s.consumer(platform).app_host_name && spec.app_specification?
-                  # This needs to be handled separately, since we _don't_ want to treat this as a "normal" dependency
-                  next
+        if !specs.empty? && !all_specs.empty?
+          specs.each do |s|
+            s.dependencies(platform).each do |dep|
+              all_specs[dep.name].each do |spec|
+                if spec.non_library_specification?
+                  if s.test_specification? && spec.name == s.consumer(platform).app_host_name && spec.app_specification?
+                    # This needs to be handled separately, since we _don't_ want to treat this as a "normal" dependency
+                    next
+                  end
+                  raise Informative, "#{s} depends upon `#{spec}`, which is a `#{spec.spec_type}` spec."
                 end
-                raise Informative, "#{s} depends upon `#{spec}`, which is a `#{spec.spec_type}` spec."
+
+                dependent_specs.each do |config, set|
+                  unless s.dependency_whitelisted_for_configuration?(dep, config)
+                    next
+                  end
+
+                  set << spec
+                end
               end
-              dependent_specs << spec
             end
           end
         end
 
-        dependent_specs - specs
+        dependent_specs.transform_values { |v| (v - specs).group_by(&:root) }.freeze
       end
 
       # Create a target for each spec group
@@ -749,7 +761,9 @@ module Pod
                     target_inspections.flat_map(&:archs).compact.uniq.sort
                   end
         else
-          user_build_configurations = Target::DEFAULT_BUILD_CONFIGURATIONS
+          user_build_configurations = Target::DEFAULT_BUILD_CONFIGURATIONS.merge(
+            target_definitions.map { |td| td.build_configurations || {} }.reduce({}, &:merge)
+          )
           archs = target_requires_64_bit ? ['$(ARCHS_STANDARD_64_BIT)'] : []
         end
         host_requires_frameworks = target_definitions.any?(&:uses_frameworks?)

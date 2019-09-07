@@ -40,6 +40,7 @@ module Pod
     # @return [BuildSettings] the build settings for this target.
     #
     attr_reader :build_settings
+    alias build_settings_by_config build_settings
 
     # @return [Target::BuildType] the build type for this target.
     #
@@ -63,7 +64,7 @@ module Pod
       @platform = platform
       @build_type = build_type
 
-      @build_settings = create_build_settings
+      @build_settings = create_build_settings_by_config
     end
 
     # @return [String] the name of the library.
@@ -206,7 +207,7 @@ module Pod
     # @return [String] A string suitable for debugging.
     #
     def inspect
-      "<#{self.class} name=#{name} >"
+      "#<#{self.class} name=#{name}>"
     end
 
     #-------------------------------------------------------------------------#
@@ -241,7 +242,7 @@ module Pod
     #
     def xcconfig_path(variant = nil)
       if variant
-        support_files_dir + "#{label}.#{variant.gsub(File::SEPARATOR, '-').downcase}.xcconfig"
+        support_files_dir + "#{label}.#{variant.to_s.gsub(File::SEPARATOR, '-').downcase}.xcconfig"
       else
         support_files_dir + "#{label}.xcconfig"
       end
@@ -320,7 +321,7 @@ module Pod
       name.gsub(/^([0-9])/, '_\1').gsub(/[^a-zA-Z0-9_]/, '_')
     end
 
-    def create_build_settings
+    def create_build_settings_by_config
       BuildSettings.new(self)
     end
   end

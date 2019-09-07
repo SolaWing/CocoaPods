@@ -95,6 +95,20 @@ module Pod
         @pod_target.should_build?.should == false
       end
 
+      it 'returns empty sets of dependent targets' do
+        grapefruits = fixture_spec('grapefruits-lib/GrapefruitsLib.podspec')
+        @pod_target = fixture_pod_target_with_specs([grapefruits, *grapefruits.recursive_subspecs], false, {}, [], Platform.ios, [@target_definition])
+
+        @pod_target.dependent_targets.should == []
+        @pod_target.dependent_targets_by_config.should == { debug: [], release: [] }
+
+        @pod_target.test_dependent_targets_by_spec_name.should == { 'GrapefruitsLib/Tests' => [] }
+        @pod_target.test_dependent_targets_by_spec_name_by_config.should == { 'GrapefruitsLib/Tests' => { debug: [], release: [] } }
+
+        @pod_target.app_dependent_targets_by_spec_name.should == { 'GrapefruitsLib/App' => [] }
+        @pod_target.app_dependent_targets_by_spec_name_by_config.should == { 'GrapefruitsLib/App' => { debug: [], release: [] } }
+      end
+
       describe '#headers_sandbox' do
         it 'returns the correct path' do
           @pod_target.headers_sandbox.should == Pathname.new('BananaLib')
@@ -117,7 +131,7 @@ module Pod
         before do
           @watermelon_spec = fixture_spec('grapefruits-lib/GrapefruitsLib.podspec')
           @pod_target = fixture_pod_target_with_specs([@watermelon_spec, *@watermelon_spec.recursive_subspecs],
-                                                      true, {}, [], Platform.new(:ios, '6.0'), [@target_definition])
+                                                      true, Pod::Target::DEFAULT_BUILD_CONFIGURATIONS, [], Platform.new(:ios, '6.0'), [@target_definition])
         end
 
         it 'raises when the target does not contain the spec' do
@@ -125,17 +139,20 @@ module Pod
         end
 
         it 'returns the build settings for a library spec' do
-          @pod_target.build_settings_for_spec(@watermelon_spec).should.equal @pod_target.build_settings
+          @pod_target.build_settings_for_spec(@watermelon_spec, configuration: :debug).should.equal @pod_target.build_settings_by_config[:debug]
+          @pod_target.build_settings_for_spec(@watermelon_spec, configuration: :release).should.equal @pod_target.build_settings_by_config[:release]
         end
 
         it 'returns the build settings for a test spec' do
           test_spec = @watermelon_spec.recursive_subspecs.find { |s| s.name == 'GrapefruitsLib/Tests' }
-          @pod_target.build_settings_for_spec(test_spec).non_library_spec.should == test_spec
+          @pod_target.build_settings_for_spec(test_spec, configuration: :debug).non_library_spec.should == test_spec
+          @pod_target.build_settings_for_spec(test_spec, configuration: :release).non_library_spec.should == test_spec
         end
 
         it 'returns the build settings for an app spec' do
           app_spec = @watermelon_spec.recursive_subspecs.find { |s| s.name == 'GrapefruitsLib/App' }
-          @pod_target.build_settings_for_spec(app_spec).non_library_spec.should == app_spec
+          @pod_target.build_settings_for_spec(app_spec, configuration: :debug).non_library_spec.should == app_spec
+          @pod_target.build_settings_for_spec(app_spec, configuration: :release).non_library_spec.should == app_spec
         end
       end
     end
@@ -377,7 +394,7 @@ module Pod
           monkey_spec = fixture_spec('monkey/monkey.podspec')
           monkey_pod_target = PodTarget.new(config.sandbox, false, {}, [],
                                             Platform.ios, [monkey_spec], [@target_definition])
-          @pod_target.stubs(:dependent_targets).returns([monkey_pod_target])
+          @pod_target.dependent_targets = [monkey_pod_target]
           header_search_paths = @pod_target.header_search_paths
           header_search_paths.sort.should == [
             '${PODS_ROOT}/Headers/Private',
@@ -458,7 +475,7 @@ module Pod
           @pod_target.sandbox.public_headers.add_search_path('monkey', Platform.ios)
           @monkey_pod_target = fixture_pod_target('monkey/monkey.podspec')
           @monkey_pod_target.stubs(:platform).returns(Platform.ios)
-          @pod_target.stubs(:dependent_targets).returns([@monkey_pod_target])
+          @pod_target.dependent_targets = [@monkey_pod_target]
           @file_accessor = @monkey_pod_target.file_accessors.first
           @file_accessor.spec_consumer.stubs(:header_dir).returns('Sub_dir')
           header_search_paths = @pod_target.header_search_paths
@@ -795,7 +812,7 @@ module Pod
         it 'returns an empty scheme configuration for a spec with an unsupported platform' do
           @matryoshka_spec.ios.deployment_target = '7.0'
           @matryoshka_spec.subspecs.first.watchos.deployment_target = '4.2'
-          pod_target = fixture_pod_target(@matryoshka_spec.subspecs.first, true, [], {}, Platform.watchos)
+          pod_target = fixture_pod_target(@matryoshka_spec.subspecs.first, true, {}, {}, Platform.watchos)
           pod_target.scheme_for_spec(@matryoshka_spec).should == {}
         end
       end
